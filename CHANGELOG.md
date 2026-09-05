@@ -2,9 +2,17 @@
 
 All notable changes to the Omni Browser project will be documented in this file.
 
+## [1.3.2.1] - 2026-09-06
+
+### Fixed
+- **Keyboard search button** (#121): pressing the search/action key after typing in the address bar now shows "Search" on the keyboard instead of "Enter".
+
+---
+
 ## [1.3.2.0] - 2026-09-06
 
 ### Added
+- **Tablet & Large-Screen Adaptive UI** (fixes #71): full adaptive layout system using official Android window size classes...
 - **Tablet & Large-Screen Adaptive UI** (fixes #71): full adaptive layout system using official Android window size classes (Compact / Medium 600–839 / Expanded 840–1199 / Large 1200–1599 / Extra-Large ≥1600 dp plus height classes). Rotation, split-screen, freeform resize and fold/unfold all reflow live.
 - **Adaptive Tablet Chrome**: responsive tab strip with dynamic tab widths (active tab always in view), desktop-class toolbar with Speed Dial and Site Info buttons matching the mobile address bar, and a navigation rail on ≥840 dp windows that yields while searching and in fullscreen.
 - **Settings List-Detail Shell**: category pane beside width-capped settings content on expanded+ windows; every list/tool screen gains a readable max-width column.

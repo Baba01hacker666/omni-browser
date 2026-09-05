@@ -5,4 +5,8 @@
         <inset android:drawable="@drawable/ic_omni_logo"
                android:inset="14%" />
     </foreground>
+    <monochrome>
+        <inset android:drawable="@drawable/ic_omni_logo"
+               android:inset="14%" />
+    </monochrome>
 </adaptive-icon>
