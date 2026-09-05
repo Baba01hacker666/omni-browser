@@ -385,12 +385,13 @@ private fun WallpaperHome(
         },
         containerColor = bgColor
     ) { pv ->
+        val wallCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Adaptive(170.dp),
             contentPadding = PaddingValues(16.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.fillMaxSize().padding(pv)
+            modifier = Modifier.fillMaxSize().padding(pv).wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = wallCap).fillMaxHeight()
         ) {
 
             // ── Action row ──────────────────────────────────────────────────
@@ -741,12 +742,13 @@ fun OnlineWallpaperGallery(
         containerColor = bgColor
     ) { pv ->
         val downloadFailedText = stringResource(R.string.wallpaper_download_failed)
+        val wallCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Adaptive(170.dp),
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 80.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxSize().padding(pv)
+            modifier = Modifier.fillMaxSize().padding(pv).wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = wallCap).fillMaxHeight()
         ) {
             items(wallpapers, key = { it.id }) { wp ->
                 OnlineWallpaperTile(
@@ -1028,8 +1030,9 @@ fun WallpaperEditorView(
         },
         containerColor = bgColor
     ) { pv ->
+        val wallCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         Column(
-            modifier = Modifier.fillMaxSize().padding(pv).verticalScroll(rememberScrollState()).padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(pv).wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = wallCap).fillMaxHeight().verticalScroll(rememberScrollState()).padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {

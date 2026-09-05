@@ -325,7 +325,17 @@ fun HomeScreenContent(
                 .widthIn(max = if (isTablet) 720.dp else Int.MAX_VALUE.dp)
                 .fillMaxHeight()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 0.dp),
+                // Extra bottom clearance when the transparent home bottom bar is
+                // visible, so the last rows can scroll clear of it on small
+                // screens instead of being overlapped mid-list.
+                .padding(
+                    start = 24.dp,
+                    end = 24.dp,
+                    bottom = if (viewModel.showBottomNavBar && !viewModel.hideHomeBottomNav)
+                        24.dp + (52 * viewModel.bottomNavScale).dp
+                    else 24.dp,
+                    top = 0.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
@@ -336,8 +346,40 @@ fun HomeScreenContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Far Left: Palette (when nav hidden) or Extensions (when nav visible)
-                if (viewModel.hideHomeBottomNav) {
+                // Far Left: Palette (when nav hidden) or Extensions (when nav visible).
+                // Tablets always get an explicit palette shortcut here — the bottom
+                // nav is replaced by the rail on large screens, so the customize
+                // entry would otherwise only live inside the rail.
+                if (isTablet) {
+                    // Tablet home: extensions + always-visible palette shortcut.
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (!viewModel.hideHomeBottomNav) {
+                            IconButton(
+                                onClick = { onOpenExtensions() },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Extension,
+                                    contentDescription = "Extensions",
+                                    tint = if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF1C1C1E),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { onShowCustomizationSheetChange(true) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Palette,
+                                contentDescription = "Customize Home",
+                                tint = if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF1C1C1E),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                } else if (viewModel.hideHomeBottomNav) {
+                    // Phone: unchanged behavior (palette only when bottom nav hidden).
                     IconButton(
                         onClick = { onShowCustomizationSheetChange(true) },
                         modifier = Modifier.size(40.dp)
@@ -2613,11 +2655,13 @@ fun ToolCard(
     val iconTint = if (isDarkTheme) Color(0xFFEAEAEA) else Color(0xFF202124)
     val textColor = if (isDarkTheme) Color(0xFFAEAEB2) else Color(0xFF3C3C43)
 
-    val circleSize = if (isCompact) 50.dp else 62.dp
-    val iconSize = if (isCompact) 22.dp else 26.dp
-    val fontSize = if (isCompact) 10.5.sp else 12.sp
-    val spacing = if (isCompact) 3.dp else 8.dp
-    val cardWidth = if (isCompact) 72.dp else 80.dp
+    // Compact (quick tools sheet): smaller tiles so a 4-column grid keeps
+    // visible gutters even on small screens.
+    val circleSize = if (isCompact) 44.dp else 62.dp
+    val iconSize = if (isCompact) 18.dp else 26.dp
+    val fontSize = if (isCompact) 10.sp else 12.sp
+    val spacing = if (isCompact) 2.dp else 8.dp
+    val cardWidth = if (isCompact) 64.dp else 80.dp
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

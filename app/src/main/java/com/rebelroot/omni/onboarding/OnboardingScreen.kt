@@ -125,11 +125,14 @@ fun OnboardingScreen(
         }
     }
 
+    val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(bg)
             .windowInsetsPadding(WindowInsets.systemBars)
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = adaptiveContentCap)
     ) {
         // ── Top bar ──────────────────────────────────────────────────────────
         Row(

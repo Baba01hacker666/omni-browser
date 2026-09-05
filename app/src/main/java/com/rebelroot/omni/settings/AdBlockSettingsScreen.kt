@@ -99,9 +99,13 @@ fun AdBlockSettingsScreen(
         },
         containerColor = bgColor
     ) { paddingValues ->
+        val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = adaptiveContentCap)
+                .fillMaxHeight()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),

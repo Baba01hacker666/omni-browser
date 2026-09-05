@@ -267,9 +267,13 @@ fun PrivateLockerScreen(
             }
         }
     ) { paddingValues ->
+        val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = adaptiveContentCap)
+                .fillMaxHeight()
                 .padding(paddingValues)
         ) {
             // Background layout with blur effect to enhance locked premium visual feel

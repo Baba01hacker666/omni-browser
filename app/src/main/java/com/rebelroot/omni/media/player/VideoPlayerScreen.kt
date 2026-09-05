@@ -1675,9 +1675,13 @@ fun VideoPlayerScreen(
                 onDismissRequest = { showSettingsDialog = false },
                 properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
             ) {
+                // Width fraction kept for phones; on medium+ windows the dialog
+                // is capped so it never becomes a full-screen slab.
+                val settingsDialogMaxWidth = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth(if (isLandscape) 0.65f else 0.9f)
+                        .widthIn(max = settingsDialogMaxWidth)
                         .height(if (isLandscape) 320.dp else 400.dp)
                         .padding(16.dp),
                     shape = RoundedCornerShape(24.dp),

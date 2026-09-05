@@ -163,8 +163,11 @@ fun SystemPermissionRationaleDialog(
             )
         }
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
@@ -255,6 +258,7 @@ fun WebExtensionDownloadConfirmationDialog(
     val surfaceColor = MaterialTheme.colorScheme.surface
 
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = {
             prompt.onCancel()
             onDismiss()
@@ -472,8 +476,11 @@ private fun PermissionSheet(
             )
         }
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
@@ -692,6 +699,7 @@ fun PlayerSettingsDialog(
     val context = LocalContext.current
     var showSnifferSubDialog by remember { mutableStateOf(false) }
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = onDismissRequest,
         title = {
             Text(
@@ -935,6 +943,7 @@ fun MediaSnifferSettingsDialog(
     }
 
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = onDismissRequest,
         title = {
             Row(
@@ -1602,8 +1611,11 @@ fun QrGeneratorDialog(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 8.dp),
@@ -1897,6 +1909,7 @@ fun TabGroupDialog(
     onDismissRequest: () -> Unit
 ) {
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = onDismissRequest,
         containerColor = if (viewModel.isDarkThemeEnabled) Color(0xFF0F1B26) else MaterialTheme.colorScheme.surface,
         title = {
@@ -2055,6 +2068,7 @@ fun CreateNewGroupComposerDialog(
     val selectedTabIds = remember { mutableStateListOf<String>() }
 
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = onDismissRequest,
         containerColor = if (viewModel.isDarkThemeEnabled) Color(0xFF0F1B26) else MaterialTheme.colorScheme.surface,
         title = {
@@ -2249,6 +2263,7 @@ fun RenameTabGroupDialog(
 ) {
 
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = onDismissRequest,
         containerColor = if (viewModel.isDarkThemeEnabled) Color(0xFF0F1B26) else MaterialTheme.colorScheme.surface,
         title = {
@@ -2398,6 +2413,7 @@ fun ExternalAppRedirectDialog(
     }
 
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = { stayInBrowser() },
         containerColor = containerColor,
         icon = {
@@ -2539,6 +2555,7 @@ fun SpoofIdentityChooserDialog(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = onDismiss,
         containerColor = containerColor,
         title = {
@@ -2903,6 +2920,7 @@ fun TorrentDownloaderDialog(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     AlertDialog(
+    modifier = Modifier.widthIn(max = 560.dp),
         onDismissRequest = onDismiss,
         containerColor = containerColor,
         title = {

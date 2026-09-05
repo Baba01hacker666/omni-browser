@@ -43,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +58,7 @@ import androidx.compose.ui.res.stringResource
 import com.rebelroot.omni.R
 import com.rebelroot.omni.browser.BackupImportResult
 import com.rebelroot.omni.utils.RoleManagerHelper
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -327,13 +330,58 @@ fun SettingsScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        // Adaptive settings shell: two-pane (category pane + width-capped content)
+        // on expanded+ windows; a capped, centered readable column on medium; the
+        // exact phone layout on compact.
+        val adaptive = com.rebelroot.omni.ui.adaptive.rememberWindowAdaptiveLayout()
+        val adaptiveMetrics = com.rebelroot.omni.ui.adaptive.adaptiveUiMetrics(adaptive)
+        val settingsScrollState = rememberScrollState()
+        val sectionOffsets = remember { mutableStateMapOf<String, Int>() }
+        var scrollContainerTopY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(bgColor)
+        ) {
+            if (adaptive.supportsTwoPane) {
+                SettingsCategoryPane(
+                    categories = listOf(
+                        SettingsCategory("personalization", stringResource(R.string.settings_section_personalization), Icons.Rounded.Palette),
+                        SettingsCategory("browsing", stringResource(R.string.settings_section_browsing), Icons.Rounded.Tab),
+                        SettingsCategory("privacy", stringResource(R.string.settings_section_privacy_security), Icons.Rounded.Security),
+                        SettingsCategory("media", stringResource(R.string.settings_section_media), Icons.Rounded.VideoFile),
+                        SettingsCategory("sync", "SYNC & ECOSYSTEM", Icons.Rounded.Sync),
+                        SettingsCategory("about", stringResource(R.string.about_section), Icons.Rounded.Info)
+                    ),
+                    onCategorySelected = { key ->
+                        sectionOffsets[key]?.let { headerWindowY ->
+                            val target = settingsScrollState.value +
+                                headerWindowY - scrollContainerTopY.toInt() - 12
+                            coroutineScope.launch {
+                                settingsScrollState.animateScrollTo(target.coerceAtLeast(0))
+                            }
+                        }
+                    },
+                    paneWidth = adaptiveMetrics.settingsPaneWidth
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = adaptiveMetrics.settingsContentMaxWidth)
+                .fillMaxSize()
                 .background(bgColor) // Dynamic background
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .verticalScroll(settingsScrollState)
+                .padding(16.dp)
+                .onGloballyPositioned { coords ->
+                    scrollContainerTopY = coords.positionInWindow().y
+                },
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             var showClearCacheConfirmation by remember { mutableStateOf(false) }
@@ -397,13 +445,19 @@ fun SettingsScreen(
 
             // ── Helper composable ─────────────────────────────────────────────────
             @Composable
-            fun SectionHeader(title: String) {
+            fun SectionHeader(title: String, sectionKey: String? = null) {
                 Text(
                     text = title,
                     color = accentColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    modifier = Modifier
+                        .padding(start = 4.dp, bottom = 4.dp)
+                        .onGloballyPositioned { coords ->
+                            if (sectionKey != null) {
+                                sectionOffsets[sectionKey] = coords.positionInWindow().y.roundToInt()
+                            }
+                        }
                 )
             }
 
@@ -555,7 +609,7 @@ fun SettingsScreen(
             } else {
                 // ── 1. PERSONALIZATION ────────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeader(stringResource(id = R.string.settings_section_personalization))
+                SectionHeader(stringResource(id = R.string.settings_section_personalization), sectionKey = "personalization")
                 SettingsCard {
                     NavRow(Icons.Rounded.Palette, stringResource(id = R.string.theme_settings_title), stringResource(id = R.string.theme_settings_desc), onOpenTheme)
                     HorizontalDivider(color = dividerColor, modifier = Modifier.padding(horizontal = 16.dp))
@@ -569,7 +623,7 @@ fun SettingsScreen(
 
             // ── 2. BROWSING ───────────────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeader(stringResource(id = R.string.settings_section_browsing))
+                SectionHeader(stringResource(id = R.string.settings_section_browsing), sectionKey = "browsing")
                 SettingsCard {
                     NavRow(Icons.Rounded.Tab, stringResource(id = R.string.tabs_settings_title), stringResource(id = R.string.tabs_settings_desc), onOpenTabs)
                     HorizontalDivider(color = dividerColor, modifier = Modifier.padding(horizontal = 16.dp))
@@ -740,7 +794,7 @@ fun SettingsScreen(
 
             // ── 3. PRIVACY & SECURITY ─────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeader(stringResource(id = R.string.settings_section_privacy_security))
+                SectionHeader(stringResource(id = R.string.settings_section_privacy_security), sectionKey = "privacy")
                 SettingsCard {
                     NavRow(Icons.Rounded.Security, stringResource(id = R.string.privacy_security_title), stringResource(id = R.string.privacy_security_desc), onOpenPrivacySecurity)
                     HorizontalDivider(color = dividerColor, modifier = Modifier.padding(horizontal = 16.dp))
@@ -802,7 +856,7 @@ fun SettingsScreen(
 
             // ── 4. MEDIA & DOWNLOADS ──────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeader(stringResource(id = R.string.settings_section_media))
+                SectionHeader(stringResource(id = R.string.settings_section_media), sectionKey = "media")
                 SettingsCard {
                     NavRow(
                         Icons.Rounded.Download,
@@ -836,7 +890,7 @@ fun SettingsScreen(
 
             // ── SYNC & ECOSYSTEM ──────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeader("SYNC & ECOSYSTEM")
+                SectionHeader("SYNC & ECOSYSTEM", sectionKey = "sync")
                 SettingsCard {
                     NavRow(
                         Icons.Rounded.Bolt,
@@ -970,7 +1024,7 @@ fun SettingsScreen(
 
             // ── 6. ABOUT ──────────────────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeader(stringResource(id = R.string.about_section))
+                SectionHeader(stringResource(id = R.string.about_section), sectionKey = "about")
                 SettingsCard {
                     val appVersionName = remember {
                         try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.2.6" }
@@ -1608,7 +1662,9 @@ fun SettingsScreen(
             onDismissRequest = { viewModel.showMediaSnifferSettingsDialog = false }
         )
     }
-}
+        } // close adaptive content Column
+        } // close adaptive content Box
+    } // close adaptive shell Row
 }
 
 

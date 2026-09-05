@@ -183,9 +183,13 @@ fun DownloadManagerScreen(
             )
         }
     ) { paddingValues ->
+        val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = adaptiveContentCap)
+                .fillMaxHeight()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {

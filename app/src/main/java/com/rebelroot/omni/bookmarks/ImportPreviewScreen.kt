@@ -220,6 +220,8 @@ fun ImportPreviewScreen(
             }
         }
     ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         if (preview == null) {
             Box(
                 modifier = Modifier
@@ -234,6 +236,7 @@ fun ImportPreviewScreen(
 
         LazyColumn(
             modifier = Modifier
+                .widthIn(max = adaptiveContentCap)
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(bgColor),
@@ -307,6 +310,7 @@ fun ImportPreviewScreen(
                 )
             }
         }
+        } // close adaptive centered container
     }
 }
 

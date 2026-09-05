@@ -157,9 +157,13 @@ fun OmniSyncShowcaseScreen(
             )
         }
     ) { padding ->
+    val showcaseCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = showcaseCap)
+                .fillMaxHeight()
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())

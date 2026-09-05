@@ -289,7 +289,11 @@ fun BrowserScreen(
     }
     val keyboardController = LocalSoftwareKeyboardController.current
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isTablet = configuration.screenWidthDp >= 600
+    // Adaptive layout state — official window size classes computed from the live
+    // window size (updates on rotation, split-screen, freeform resize, fold/unfold).
+    val adaptive = com.rebelroot.omni.ui.adaptive.rememberWindowAdaptiveLayout()
+    val adaptiveMetrics = com.rebelroot.omni.ui.adaptive.adaptiveUiMetrics(adaptive, viewModel.uiScale)
+    val isTablet = adaptive.useTabletChrome
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val coroutineScope = rememberCoroutineScope()
     val config = getUiSizeConfig(viewModel.uiScale, configuration.screenWidthDp)
@@ -930,6 +934,8 @@ fun BrowserScreen(
         ) {
             Column(
                 modifier = Modifier
+                    .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                    .align(Alignment.CenterHorizontally)
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .padding(horizontal = 20.dp)
@@ -1074,6 +1080,7 @@ fun BrowserScreen(
                 crashPrefs.edit().remove("last_crash_msg").apply()
                 crashMsg = null
             },
+            modifier = Modifier.widthIn(max = 560.dp),
             title = {
                 Text("Auto Recovery", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
             },
@@ -1139,7 +1146,34 @@ fun BrowserScreen(
 
         var bottomBarHeightPx by remember { mutableIntStateOf(0) }
 
-        Scaffold(
+        // Adaptive navigation: ≥840dp windows get a persistent navigation rail
+        // instead of a stretched 5-button phone bottom bar. The rail yields while
+        // the user is searching — the toolbar already carries those actions and
+        // the focused field gets the full width — and never shows in fullscreen.
+        val showBrowserRail = adaptive.useNavigationRail && !viewModel.isFullscreen && !isInputFocused && !isHomeSearchFocused
+
+        AdaptiveBrowserShell(
+            showRail = showBrowserRail,
+            railContent = {
+                BrowserNavigationRail(
+                    showHomeContent = showHomeScreen,
+                    tabCount = viewModel.tabs.count { it.isIncognito == viewModel.isIncognitoMode },
+                    hasActiveUserExtensions = hasActiveUserExtensions,
+                    onNewTab = { viewModel.createNewTab(context, "about:blank") },
+                    onShowTabGroups = { showTabGroupsSheet = true },
+                    onShowQuickTools = { showQuickToolsSheet = true },
+                    onShowExtensions = { showExtensionsSheet = true },
+                    onShowMenu = { showAllInOneMenuSheet = true },
+                    onCustomizeHome = { showCustomizationSheet = true },
+                    onOpenNews = { onOpenNewsCenter() },
+                    metrics = adaptiveMetrics,
+                    isDarkTheme = viewModel.isDarkThemeEnabled,
+                    isAmoled = viewModel.isAmoledMode
+                )
+            },
+            modifier = Modifier.fillMaxSize(),
+            content = {
+            Scaffold(
         topBar = {
         if (!viewModel.isFullscreen && !showHomeScreen &&
                 ((viewModel.chromeNavBarEnabled && viewModel.addressBarPosition != "Bottom") ||
@@ -1175,349 +1209,74 @@ fun BrowserScreen(
                             }
                         ) {
                             if (isTablet) {
-                                // Tablet Tab Strip
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(56.dp)
-                                        .background(if (viewModel.isAmoledMode) Color(0xFF000000) else if (viewModel.isDarkThemeEnabled || viewModel.isIncognitoMode) Color(0xFF1C1C1E) else Color(0xFFF1F3F4))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    val tabletTabs = viewModel.tabs.filter { it.isIncognito == viewModel.isIncognitoMode }
-                                    LazyRow(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        items(tabletTabs, key = { it.id }) { tab ->
-                                            val isActive = tab.id == viewModel.activeTabId
-                                            val tabBg = if (isActive) {
-                                                if (viewModel.isDarkThemeEnabled || viewModel.isIncognitoMode) Color(0xFF2C2C2E) else Color.White
-                                            } else {
-                                                Color.Transparent
-                                            }
-                                            val tabTextColor = if (isActive) {
-                                                if (viewModel.isDarkThemeEnabled || viewModel.isIncognitoMode) Color.White else Color(0xFF202124)
-                                            } else {
-                                                if (viewModel.isDarkThemeEnabled || viewModel.isIncognitoMode) Color.White.copy(alpha = 0.6f) else Color(0xFF606266)
-                                            }
-                                            
-                                            Row(
-                                                modifier = Modifier
-                                                    .width(164.dp)
-                                                    .fillMaxHeight()
-                                                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                                                    .background(tabBg)
-                                                    .clickable { viewModel.selectTab(tab.id) }
-                                                    .padding(horizontal = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = if (tab.title.isNullOrBlank()) stringResource(R.string.new_tab_title) else tab.title,
-                                                    color = tabTextColor,
-                                                    fontSize = 12.sp,
-                                                    maxLines = 1,
-                                                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                                                    modifier = Modifier.weight(1f)
-                                                )
-                                                
-                                                if (tabletTabs.size > 1 || viewModel.isIncognitoMode) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(16.dp)
-                                                            .clip(CircleShape)
-                                                            .clickable { viewModel.closeTab(tab.id, context) },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Rounded.Close,
-                                                            contentDescription = stringResource(R.string.close_tab_desc),
-                                                            tint = tabTextColor.copy(alpha = 0.7f),
-                                                            modifier = Modifier.size(12.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
+                                // Adaptive tablet tab strip — widths computed from the
+                                // available window width (min/max clamped, active tab kept
+                                // in view, "+" always accessible).
+                                OmniTabStrip(
+                                    tabs = viewModel.tabs.filter { it.isIncognito == viewModel.isIncognitoMode },
+                                    activeTabId = viewModel.activeTabId,
+                                    onSelectTab = { viewModel.selectTab(it) },
+                                    onCloseTab = { viewModel.closeTab(it.id, context) },
+                                    onNewTab = { viewModel.createNewTab(context, "about:blank") },
+                                    metrics = adaptiveMetrics,
+                                    isDarkTheme = viewModel.isDarkThemeEnabled,
+                                    isAmoled = viewModel.isAmoledMode,
+                                    isIncognito = viewModel.isIncognitoMode
+                                )
+
+                                // Adaptive tablet toolbar — nav cluster + weighted address
+                                // field (min width enforced) + priority-ordered actions that
+                                // collapse deterministically when space runs out or the field
+                                // is focused.
+                                AdaptiveTabletToolbar(
+                                    inputUrl = inputUrl,
+                                    onInputUrlChange = { inputUrl = it },
+                                    isInputFocused = isInputFocused,
+                                    onInputFocusedChange = { focused ->
+                                        if (focused && !isInputFocused) {
+                                            val text = inputUrl.text
+                                            inputUrl = inputUrl.copy(selection = androidx.compose.ui.text.TextRange(0, text.length))
                                         }
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    
-                                    IconButton(
-                                        onClick = { viewModel.createNewTab(context, "about:blank") },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Add,
-                                            contentDescription = stringResource(R.string.menu_new_tab),
-                                            tint = if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF202124),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-
-                                HorizontalDivider(color = if (viewModel.isDarkThemeEnabled) Color(0xFF16222F) else Color(0x1F000000))
-
-                                // Tablet Toolbar
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    IconButton(
-                                        onClick = { viewModel.goBack() },
-                                        enabled = viewModel.canGoBack && !showHomeScreen,
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                            contentDescription = "Back",
-                                            tint = if (viewModel.canGoBack && !showHomeScreen) (if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF202124)) else (if (viewModel.isDarkThemeEnabled) Color.White.copy(alpha = 0.2f) else Color(0x1F000000)),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-
-                                    IconButton(
-                                        onClick = { viewModel.goForward() },
-                                        enabled = viewModel.canGoForward,
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                                            contentDescription = "Forward",
-                                            tint = if (viewModel.canGoForward) (if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF202124)) else (if (viewModel.isDarkThemeEnabled) Color.White.copy(alpha = 0.2f) else Color(0x1F000000)),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-
-                                    IconButton(
-                                        onClick = { viewModel.loadUrl("about:blank") },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Home,
-                                            contentDescription = "Home",
-                                            tint = if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF202124),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                                shape = RoundedCornerShape(20.dp)
-                                            )
-                                            .border(
-                                                width = 1.dp,
-                                                color = if (isInputFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                                shape = RoundedCornerShape(20.dp)
-                                            )
-                                            .padding(horizontal = 16.dp),
-                                        contentAlignment = Alignment.CenterStart
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            if (!isInputFocused) {
-                                                Icon(
-                                                    imageVector = if (viewModel.isIncognitoMode) Icons.Rounded.VisibilityOff else Icons.Rounded.Search,
-                                                    contentDescription = "Search icon",
-                                                    modifier = Modifier.size(16.dp),
-                                                    tint = if (viewModel.isIncognitoMode) Color(0xFFCBB2FF) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                                )
-                                            }
-
-                                            val domainColor = MaterialTheme.colorScheme.onSurface
-                                            val pathColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                            val urlTransformation = remember(isInputFocused, domainColor, pathColor) {
-                                                UrlVisualTransformation(isInputFocused, domainColor, pathColor)
-                                            }
-
-                                            val bringIntoViewRequester = remember { BringIntoViewRequester() }
-
-                                            BasicTextField(
-                                                value = if (inputUrl.text == "about:blank") androidx.compose.ui.text.input.TextFieldValue("") else inputUrl,
-                                                onValueChange = { inputUrl = it },
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .focusRequester(focusRequester)
-                                                    .onFocusChanged { 
-                                                        if (it.isFocused && !isInputFocused) {
-                                                            val text = inputUrl.text
-                                                            inputUrl = inputUrl.copy(selection = androidx.compose.ui.text.TextRange(0, text.length))
-                                                        }
-                                                        isInputFocused = it.isFocused
-                                                    }
-                                                    .bringIntoViewRequester(bringIntoViewRequester),
-                                                onTextLayout = { textLayoutResult ->
-                                                    val cursorStart = inputUrl.selection.start
-                                                    val layoutTextLength = textLayoutResult.layoutInput.text.length
-                                                    if (cursorStart >= 0 && cursorStart <= layoutTextLength) {
-                                                        try {
-                                                            val cursorRect = textLayoutResult.getCursorRect(cursorStart)
-                                                            coroutineScope.launch {
-                                                                bringIntoViewRequester.bringIntoView(cursorRect)
-                                                            }
-                                                        } catch (e: Throwable) {
-                                                            // Safely ignore transient layout bounds mismatch
-                                                        }
-                                                    }
-                                                },
-                                                singleLine = true,
-                                                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                ),
-                                                keyboardOptions = KeyboardOptions(
-                                                    imeAction = ImeAction.Go
-                                                ),
-                                                keyboardActions = KeyboardActions(
-                                                    onGo = {
-                                                        viewModel.loadUrl(inputUrl.text)
-                                                        focusManager.clearFocus()
-                                                        keyboardController?.hide()
-                                                    }
-                                                ),
-                                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                                visualTransformation = urlTransformation
-                                            )
-
-                                            if (inputUrl.text.isNotEmpty() && inputUrl.text != "about:blank") {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(24.dp)
-                                                        .clickable { inputUrl = androidx.compose.ui.text.input.TextFieldValue("") },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Rounded.Close,
-                                                        contentDescription = "Clear",
-                                                        modifier = Modifier.size(16.dp),
-                                                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                                    )
-                                                }
-                                            }
-
-                                            if (viewModel.currentUrl.isNotEmpty() && viewModel.currentUrl != "about:blank" && !isInputFocused) {
-                                                val isBookmarked = viewModel.isBookmarked(viewModel.currentUrl)
-                                                
-                                                // Only show reader toggle button when reader mode is NOT active
-                                                // (when active, the dedicated reader config bar at the bottom handles exit)
-                                                if (false) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(24.dp)
-                                                            .clickable { viewModel.toggleReaderMode() },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.AutoMirrored.Rounded.MenuBook,
-                                                            contentDescription = "Reader Mode",
-                                                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                    
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                }
-                                                
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(24.dp)
-                                                        .clickable {
-                                                            if (isBookmarked) {
-                                                                viewModel.removeBookmark(viewModel.currentUrl)
-                                                            } else {
-                                                                val activeTabTitle = viewModel.tabs.find { it.id == viewModel.activeTabId }?.title ?: "Page"
-                                                                viewModel.addToBookmarks(activeTabTitle, viewModel.currentUrl)
-                                                            }
-                                                        },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = if (isBookmarked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                                                        contentDescription = "Bookmark",
-                                                        tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                }
-                                            }
+                                        isInputFocused = focused
+                                    },
+                                    focusRequester = focusRequester,
+                                    canGoBack = viewModel.canGoBack,
+                                    canGoForward = viewModel.canGoForward,
+                                    onBack = { viewModel.goBack() },
+                                    onForward = { viewModel.goForward() },
+                                    onHome = { viewModel.loadUrl("about:blank") },
+                                    onCommitUrl = { viewModel.loadUrl(it) },
+                                    onClearInput = { inputUrl = androidx.compose.ui.text.input.TextFieldValue("") },
+                                    currentUrl = viewModel.currentUrl,
+                                    isBookmarked = viewModel.isBookmarked(viewModel.currentUrl),
+                                    onToggleBookmark = {
+                                        if (viewModel.isBookmarked(viewModel.currentUrl)) {
+                                            viewModel.removeBookmark(viewModel.currentUrl)
+                                        } else {
+                                            val activeTabTitle = viewModel.tabs.find { it.id == viewModel.activeTabId }?.title ?: "Page"
+                                            viewModel.addToBookmarks(activeTabTitle, viewModel.currentUrl)
                                         }
-                                    }
-
-                                    if (isInputFocused) {
-                                        TextButton(
-                                            onClick = {
-                                                inputUrl = androidx.compose.ui.text.input.TextFieldValue(viewModel.currentUrl)
-                                                focusManager.clearFocus()
-                                                keyboardController?.hide()
-                                            }
-                                        ) {
-                                            Text("Cancel", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
-                                        }
-                                    }
-
-                                    IconButton(
-                                        onClick = { showExtensionsSheet = true },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.TopEnd) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Extension,
-                                                contentDescription = stringResource(R.string.ext_menu_cd),
-                                                tint = if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF202124),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            if (hasActiveUserExtensions) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(6.dp)
-                                                        .offset(x = 1.dp, y = (-1).dp)
-                                                        .background(
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            shape = CircleShape
-                                                        )
-                                                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape)
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    IconButton(
-                                        onClick = { showQuickToolsSheet = true },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = BlackholeIcon,
-                                            contentDescription = "Tools",
-                                            tint = if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF202124),
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-
-                                    Box {
-                                        IconButton(
-                                            onClick = { showMenu = true },
-                                            modifier = Modifier.size(36.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.MoreVert,
-                                                contentDescription = "Menu",
-                                                tint = if (viewModel.isDarkThemeEnabled) Color.White else Color(0xFF202124),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-
-                                    }
-                                }
+                                    },
+                                    hasActiveUserExtensions = hasActiveUserExtensions,
+                                    onShowExtensions = { showExtensionsSheet = true },
+                                    onShowTools = { showQuickToolsSheet = true },
+                                    onShowMenu = { showMenu = true },
+                                    onShowSiteInfo = { showSiteInfoSheet = true },
+                                    onShowSpeedDial = { showSpeedDialSheet = true },
+                                    showSpeedDialButton = viewModel.chromeNavBarEnabled || viewModel.addressBarPosition == "Split",
+                                    historySuggestions = viewModel.historySuggestions.toList(),
+                                    onSelectSuggestion = { entry ->
+                                        viewModel.loadUrl(entry.url)
+                                        inputUrl = androidx.compose.ui.text.input.TextFieldValue(entry.url)
+                                        focusManager.clearFocus()
+                                        keyboardController?.hide()
+                                    },
+                                    metrics = adaptiveMetrics,
+                                    isDarkTheme = viewModel.isDarkThemeEnabled,
+                                    isAmoled = viewModel.isAmoledMode,
+                                    isIncognito = viewModel.isIncognitoMode,
+                                    isHomeScreen = showHomeScreen
+                                )
                             } else {
                                 // Phone Top Bar — show address bar here when position is "Top",
                                 // or All-in-One is enabled AND position is NOT explicitly "Bottom"
@@ -1756,9 +1515,16 @@ fun BrowserScreen(
                     }
                 }
 
-                if ((!viewModel.chromeNavBarEnabled || showHomeScreen) && viewModel.showBottomNavBar && !(showHomeScreen && viewModel.hideHomeBottomNav) && !viewModel.isFullscreen && !isInputFocused && !isHomeSearchFocused) {
+                if ((!viewModel.chromeNavBarEnabled || showHomeScreen) && viewModel.showBottomNavBar && !(showHomeScreen && viewModel.hideHomeBottomNav) && !viewModel.isFullscreen && !isInputFocused && !isHomeSearchFocused && !showBrowserRail) {
                     // Flat minimal bottom bar: transparent and seamlessly blended on Home Screen, contoured on Webpages
                 val isDark = viewModel.isDarkThemeEnabled
+                // Adaptive: on medium+ widths the 5-button row is width-capped and
+                // centered (no horizontal stretching) with ≥48dp touch targets;
+                // compact keeps the exact phone sizing.
+                val adaptiveNavMaxWidth = adaptiveMetrics.navigationBarMaxWidth
+                val adaptiveNavHeight = if (adaptive.atLeastMedium) adaptiveMetrics.navigationBarHeight else (52 * viewModel.bottomNavScale).dp
+                val adaptiveNavTouch = if (adaptive.atLeastMedium) adaptiveMetrics.navigationBarTouchTarget else config.barIconSize + 4.dp
+                val adaptiveHomeNavTouch = if (adaptive.atLeastMedium) adaptiveMetrics.navigationBarTouchTarget else 44.dp
                 val navBg = if (showHomeScreen) Color.Transparent else if (viewModel.isAmoledMode) Color(0xFF000000) else if (isDark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
                 val navBorder = if (viewModel.isAmoledMode) Color(0xFF1A1A1A) else if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA)
                 val navContent = if (isDark) Color.White else Color(0xFF1C1C1E)
@@ -1798,10 +1564,15 @@ fun BrowserScreen(
                         }
                         if (showHomeScreen) {
                         // 4-Button Home Navigation Bar: Palette, News Center, Quick Tools, Menu
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
                         Row(
                             modifier = Modifier
+                                .widthIn(max = adaptiveNavMaxWidth)
                                 .fillMaxWidth()
-                                .height((52 * viewModel.bottomNavScale).dp),
+                                .heightIn(min = adaptiveNavHeight),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
@@ -1812,7 +1583,7 @@ fun BrowserScreen(
                             ) {
                                 IconButton(
                                     onClick = { showCustomizationSheet = true },
-                                    modifier = Modifier.size(44.dp)
+                                    modifier = Modifier.size(adaptiveHomeNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Palette,
@@ -1830,7 +1601,7 @@ fun BrowserScreen(
                             ) {
                                 IconButton(
                                     onClick = { onOpenNewsCenter() },
-                                    modifier = Modifier.size(44.dp)
+                                    modifier = Modifier.size(adaptiveHomeNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Rounded.Article,
@@ -1848,7 +1619,7 @@ fun BrowserScreen(
                             ) {
                                 IconButton(
                                     onClick = { showQuickToolsSheet = true },
-                                    modifier = Modifier.size(44.dp)
+                                    modifier = Modifier.size(adaptiveHomeNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.GridView,
@@ -1866,7 +1637,7 @@ fun BrowserScreen(
                             ) {
                                 IconButton(
                                     onClick = { showAllInOneMenuSheet = true },
-                                    modifier = Modifier.size(44.dp)
+                                    modifier = Modifier.size(adaptiveHomeNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Menu,
@@ -1877,12 +1648,18 @@ fun BrowserScreen(
                                 }
                             }
                         }
+                        } // close home nav centering Box
                     } else {
                         // Standard Webpage Navigation Bar (Back, Forward, Tools, Tabs, Menu)
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
                         Row(
                             modifier = Modifier
+                                .widthIn(max = adaptiveNavMaxWidth)
                                 .fillMaxWidth()
-                                .height((52 * viewModel.bottomNavScale).dp)
+                                .heightIn(min = adaptiveNavHeight)
                                 .pointerInput(viewModel.activeTabId, viewModel.isIncognitoMode) {
                                     detectHorizontalDragGestures(
                                         onDragEnd = {
@@ -1916,7 +1693,7 @@ fun BrowserScreen(
                                 IconButton(
                                     onClick = { viewModel.goBack() },
                                     enabled = viewModel.canGoBack && !showHomeScreen,
-                                    modifier = Modifier.size(config.barIconSize + 4.dp)
+                                    modifier = Modifier.size(adaptiveNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -1931,7 +1708,7 @@ fun BrowserScreen(
                                 IconButton(
                                     onClick = { viewModel.goForward() },
                                     enabled = viewModel.canGoForward,
-                                    modifier = Modifier.size(config.barIconSize + 4.dp)
+                                    modifier = Modifier.size(adaptiveNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
@@ -1945,7 +1722,7 @@ fun BrowserScreen(
                             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 IconButton(
                                     onClick = { showQuickToolsSheet = true },
-                                    modifier = Modifier.size(config.barIconSize + 4.dp)
+                                    modifier = Modifier.size(adaptiveNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = BlackholeIcon,
@@ -1978,7 +1755,7 @@ fun BrowserScreen(
                             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 IconButton(
                                     onClick = { showAllInOneMenuSheet = true },
-                                    modifier = Modifier.size(config.barIconSize + 4.dp)
+                                    modifier = Modifier.size(adaptiveNavTouch)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Menu,
@@ -1989,6 +1766,7 @@ fun BrowserScreen(
                                 }
                             }
                         }
+                        } // close web nav centering Box
                     }
                     }
                 }
@@ -2014,14 +1792,14 @@ fun BrowserScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (!viewModel.isFullscreen && !isLandscape) Modifier.navigationBarsPadding() else Modifier)
+                .then(if (!viewModel.isFullscreen) Modifier.navigationBarsPadding() else Modifier)
                 .clip(androidx.compose.ui.graphics.RectangleShape)
                 .background(if (viewModel.isFullscreen || isLandscape) Color.Black else MaterialTheme.colorScheme.background)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (!viewModel.isFullscreen && !isLandscape) Modifier.statusBarsPadding() else Modifier)
+                    .then(if (!viewModel.isFullscreen) Modifier.statusBarsPadding() else Modifier)
             ) {
                 AnimatedVisibility(
                     visible = showAlohaBanner && viewModel.addressBarPosition == "Bottom",
@@ -2066,29 +1844,36 @@ fun BrowserScreen(
                     ) { (targetTabId, isHome) ->
                         Box(modifier = Modifier.fillMaxSize()) {
                             if (activeTab != null && !isHome) {
-                                val bottomNavBarHeight = remember(viewModel.addressBarPosition, viewModel.chromeNavBarEnabled, viewModel.showBottomNavBar, viewModel.bottomNavScale, viewModel.uiScale) {
-                                    if (!isTablet && !isHome && !viewModel.isFullscreen && !isLandscape) {
+                                val bottomNavBarHeight = remember(viewModel.addressBarPosition, viewModel.chromeNavBarEnabled, viewModel.showBottomNavBar, viewModel.bottomNavScale, viewModel.uiScale, adaptive.widthDp) {
+                                    // Applies to every width class and orientation: the
+                                    // web viewport must account for whatever chrome is
+                                    // actually visible below it (phone bars, tablet bottom
+                                    // address bar) — content is never drawn behind chrome.
+                                    if (!isHome && !viewModel.isFullscreen) {
+                                        val bottomNavHeight = if (showBrowserRail) 0.dp
+                                            else if (adaptive.atLeastMedium) adaptiveMetrics.navigationBarHeight
+                                            else (52 * viewModel.bottomNavScale).dp
                                         when (viewModel.addressBarPosition) {
                                             "Bottom" -> {
                                                 val searchHeight = config.searchBoxHeight + (config.paddingVertical * 2)
                                                 if (viewModel.chromeNavBarEnabled) {
                                                     searchHeight
                                                 } else if (viewModel.showBottomNavBar) {
-                                                    searchHeight + (52 * viewModel.bottomNavScale).dp
+                                                    searchHeight + bottomNavHeight
                                                 } else {
                                                     searchHeight
                                                 }
                                             }
                                             "Top" -> {
                                                 if (!viewModel.chromeNavBarEnabled && viewModel.showBottomNavBar) {
-                                                    (52 * viewModel.bottomNavScale).dp
+                                                    bottomNavHeight
                                                 } else {
                                                     0.dp
                                                 }
                                             }
                                             "Split" -> {
                                                 if (viewModel.showBottomNavBar) {
-                                                    (52 * viewModel.bottomNavScale).dp
+                                                    bottomNavHeight
                                                 } else {
                                                     0.dp
                                                 }
@@ -2107,10 +1892,10 @@ fun BrowserScreen(
                                 // so GeckoView padding is correct when the banner is visible.
                                 val bannerHeight = if (showAlohaBanner && viewModel.addressBarPosition != "Bottom") 48.dp else 0.dp
 
-                                val geckoTopPad = if (hasTopBar && !viewModel.isFullscreen && !isLandscape && !(isKeyboardVisible && !isInputFocused && !isEditMode)) {
+                                val geckoTopPad = if (hasTopBar && !viewModel.isFullscreen && !(isKeyboardVisible && !isInputFocused && !isEditMode)) {
                                     (topBarMeasuredDp * (1f - topBarFraction)) + bannerHeight
                                 } else 0.dp
-                                val geckoBottomPad = if (!viewModel.isFullscreen && !isLandscape) bottomNavBarHeight * (1f - bottomBarFraction) else 0.dp
+                                val geckoBottomPad = if (!viewModel.isFullscreen) bottomNavBarHeight * (1f - bottomBarFraction) else 0.dp
                                 
                                 BoxWithConstraints(
                                     modifier = Modifier
@@ -3776,6 +3561,8 @@ fun BrowserScreen(
                 ) {
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .navigationBarsPadding()
                             .padding(horizontal = 24.dp, vertical = 8.dp),
@@ -3899,6 +3686,8 @@ fun BrowserScreen(
                 ) {
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -4152,6 +3941,7 @@ fun BrowserScreen(
                         viewModel.pendingSiteDownloadUrl = null
                         viewModel.pendingSiteDownloadInfo = null
                     },
+                    modifier = Modifier.widthIn(max = 560.dp),
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -4331,6 +4121,8 @@ fun BrowserScreen(
                 ) {
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .navigationBarsPadding()
                             .padding(horizontal = 24.dp, vertical = 20.dp),
@@ -4496,6 +4288,7 @@ fun BrowserScreen(
 
                 AlertDialog(
                     onDismissRequest = { showTranslationDialog = false; viewModel.translationManager.close() },
+                    modifier = Modifier.widthIn(max = 560.dp),
                     containerColor = if (viewModel.isAmoledMode) Color(0xFF000000) else MaterialTheme.colorScheme.surface,
                     title = {
                         Text(
@@ -4820,6 +4613,8 @@ fun BrowserScreen(
                 ) {
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .padding(bottom = 4.dp)
                             .navigationBarsPadding(),
@@ -5677,6 +5472,8 @@ fun BrowserScreen(
                 ) {
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                             .navigationBarsPadding(),
@@ -6065,6 +5862,7 @@ fun BrowserScreen(
                 if (showLoadScriptDialog) {
                     AlertDialog(
                         onDismissRequest = { showLoadScriptDialog = false },
+                        modifier = Modifier.widthIn(max = 560.dp),
                         title = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -6255,6 +6053,8 @@ fun BrowserScreen(
                 ) {
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .navigationBarsPadding()
                             .padding(horizontal = 16.dp)
@@ -6622,6 +6422,7 @@ fun BrowserScreen(
                 }
                 AlertDialog(
                     onDismissRequest = { extensionToDelete = null },
+                    modifier = Modifier.widthIn(max = 560.dp),
                     title = { Text(stringResource(R.string.ext_delete_title), color = if (viewModel.isDarkThemeEnabled) Color.White else Color.Black) },
                     text = { Text(stringResource(R.string.ext_delete_confirm_user, extDisplayName), color = if (viewModel.isDarkThemeEnabled) Color(0xFFC5D1DE) else Color.DarkGray) },
                     confirmButton = {
@@ -6648,6 +6449,7 @@ fun BrowserScreen(
                 val name = builtInExtensionToDelete!!
                 AlertDialog(
                     onDismissRequest = { builtInExtensionToDelete = null },
+                    modifier = Modifier.widthIn(max = 560.dp),
                     title = { Text(stringResource(R.string.ext_delete_title), color = if (viewModel.isDarkThemeEnabled) Color.White else Color.Black) },
                     text = { Text(stringResource(R.string.ext_delete_confirm_builtin, name), color = if (viewModel.isDarkThemeEnabled) Color(0xFFC5D1DE) else Color.DarkGray) },
                     confirmButton = {
@@ -6687,7 +6489,9 @@ fun BrowserScreen(
             // Render top dropdown as an in-canvas overlay on web pages to keep GeckoView window focused
             if (showMenu && viewModel.addressBarPosition != "Bottom") {
                 val density = androidx.compose.ui.platform.LocalDensity.current
-                val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
+                val configurationForMenu = androidx.compose.ui.platform.LocalConfiguration.current
+                val screenWidthDp = configurationForMenu.screenWidthDp.dp
+                val screenHeightDp = configurationForMenu.screenHeightDp.dp
                 val statusBarPx = WindowInsets.statusBars.getTop(density)
                 val statusBarDp = with(density) { statusBarPx.toDp() }
                 val topBarHeightDp = if (measuredTopBarHeightPx > 0) with(density) { measuredTopBarHeightPx.toDp() } else 56.dp
@@ -6717,6 +6521,7 @@ fun BrowserScreen(
                         omnimenuDropdownCard(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
+                            availableHeight = screenHeightDp - menuTopOffset - 16.dp,
                             viewModel = viewModel,
                             onNewTab = {
                                 showMenu = false
@@ -6784,6 +6589,8 @@ fun BrowserScreen(
 
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = 20.dp, vertical = 8.dp)
@@ -7271,6 +7078,7 @@ fun BrowserScreen(
             viewModel.pendingExtensionInstallPrompt?.let { pending ->
                 AlertDialog(
                     onDismissRequest = { viewModel.respondToInstallPrompt(false) },
+                    modifier = Modifier.widthIn(max = 560.dp),
                     containerColor = if (viewModel.isAmoledMode) Color(0xFF000000) else MaterialTheme.colorScheme.surface,
                     title = {
                         Text(
@@ -7534,7 +7342,9 @@ fun BrowserScreen(
                         containerColor = if (viewModel.isAmoledMode) Color(0xFF000000) else MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                     ) {
-                        popupContent()
+                        Box(modifier = Modifier.fillMaxWidth().widthIn(max = adaptiveMetrics.sheetMaxWidth)) {
+                            popupContent()
+                        }
                     }
                 } // key block
             }
@@ -7659,6 +7469,8 @@ fun BrowserScreen(
                 ) {
                     Column(
                         modifier = Modifier
+                            .widthIn(max = adaptiveMetrics.sheetMaxWidth)
+                            .align(Alignment.CenterHorizontally)
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -8564,6 +8376,8 @@ fun BrowserScreen(
 
 }
     }
+            } // close AdaptiveBrowserShell content
+        ) // close AdaptiveBrowserShell call
 }
 }
 
@@ -8772,6 +8586,7 @@ fun ChoicePromptDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.widthIn(max = 560.dp),
         title = {
             Text(
                 text = title,
@@ -9057,6 +8872,7 @@ private fun MediaSnifferBanner(
     if (showBlockConfirm && currentHost.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { showBlockConfirm = false },
+            modifier = Modifier.widthIn(max = 560.dp),
             title = {
                 Text(
                     text = androidx.compose.ui.res.stringResource(R.string.media_sniffer_block_confirm_title),

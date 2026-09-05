@@ -199,9 +199,12 @@ fun HistoryScreen(
             }
         }
     ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .widthIn(max = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth)
                 .padding(paddingValues)
                 .background(bgColor)
         ) {
@@ -274,6 +277,7 @@ fun HistoryScreen(
                 }
             }
         }
+        } // close adaptive centered container
     }
 
     // Clear all confirmation dialog

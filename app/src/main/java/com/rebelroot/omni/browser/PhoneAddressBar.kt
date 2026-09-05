@@ -932,7 +932,8 @@ fun omnimenuDropdownCard(
     onShowExtensions: () -> Unit = {},
     onShowPlayerSettings: () -> Unit = {},
     onShowSiteInfo: () -> Unit = {},
-    onFindInPage: () -> Unit = {}
+    onFindInPage: () -> Unit = {},
+    availableHeight: androidx.compose.ui.unit.Dp = androidx.compose.ui.unit.Dp.Unspecified
 ) {
     val context = LocalContext.current
     val isDark = viewModel.isDarkThemeEnabled
@@ -960,7 +961,12 @@ fun omnimenuDropdownCard(
         screenWidthDp < 400.dp -> (screenWidthDp * 0.74f).coerceIn(240.dp, 280.dp)
         else -> 300.dp
     }
-    val maxHeight = (screenHeightDp - if (isCompact) 80.dp else 130.dp).coerceAtLeast(220.dp)
+    // The card floats BELOW its anchor (status bar + top bar), so its height
+    // budget must be the space under that anchor — otherwise the bottom rows
+    // clip past the screen edge. Callers that know the anchor pass it; the
+    // legacy estimate stays as a conservative fallback.
+    val maxHeight = (availableHeight.takeIf { it != androidx.compose.ui.unit.Dp.Unspecified }
+        ?: (screenHeightDp - if (isCompact) 80.dp else 130.dp)).coerceAtLeast(220.dp)
 
     Surface(
         modifier = Modifier
@@ -1369,6 +1375,12 @@ fun omnimenuDropdown(
     onShowSiteInfo: () -> Unit = {},
     onFindInPage: () -> Unit = {}
 ) {
+    val configurationHint = androidx.compose.ui.platform.LocalConfiguration.current
+    // DropdownMenu anchors below the calling button (~status bar + one bar row);
+    // reserve that plus bottom system area so the card never gets window-clipped.
+    val screenHeightHint = with(androidx.compose.ui.platform.LocalDensity.current) {
+        (configurationHint.screenHeightDp - 190).dp
+    }
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
@@ -1380,6 +1392,7 @@ fun omnimenuDropdown(
         omnimenuDropdownCard(
             expanded = expanded,
             onDismissRequest = onDismissRequest,
+            availableHeight = screenHeightHint,
             viewModel = viewModel,
             onNewTab = onNewTab,
             onNewIncognitoTab = onNewIncognitoTab,

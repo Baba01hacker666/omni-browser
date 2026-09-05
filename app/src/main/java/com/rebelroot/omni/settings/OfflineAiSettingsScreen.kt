@@ -95,9 +95,13 @@ fun OfflineAiSettingsScreen(
 
     BackHandler { onNavigateBack() }
 
+    val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = adaptiveContentCap)
+            .fillMaxHeight()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())

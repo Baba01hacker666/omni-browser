@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -167,8 +168,10 @@ fun MasterPasswordScreen(
             transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
             label = "vault-auth-step"
         ) { authStep ->
+            val adaptiveContentCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
             Column(
                 modifier = Modifier
+                    .widthIn(max = adaptiveContentCap)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 28.dp, vertical = 40.dp),

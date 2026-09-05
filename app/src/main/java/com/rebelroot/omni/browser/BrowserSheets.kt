@@ -1022,8 +1022,11 @@ fun SiteStyleCustomizerSheetContent(
             )
         }
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -1539,8 +1542,11 @@ fun PrivacyReportSheet(
         containerColor = if (viewModel.isAmoledMode) Color(0xFF000000) else if (viewModel.isDarkThemeEnabled) Color(0xFF1C1C1E) else Color.White,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
@@ -1897,8 +1903,11 @@ fun ImageGrabberSheetContent(
             containerColor = cardBg,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
+        val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
             Column(
                 modifier = Modifier
+                    .widthIn(max = sheetCap)
+                    .align(Alignment.CenterHorizontally)
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .padding(horizontal = 24.dp, vertical = 16.dp),
@@ -2020,8 +2029,11 @@ fun ImageGrabberSheetContent(
         containerColor = bg,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .fillMaxHeight(0.9f)
@@ -2210,7 +2222,7 @@ fun ImageGrabberSheetContent(
                 // ── Grid Gallery Mode (with Top-Right X Delete Badge) ──
                 Column(modifier = Modifier.fillMaxSize()) {
                     androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-                        columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(3),
+                        columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(112.dp),
                         modifier = Modifier
                             .weight(1f)
                             .padding(8.dp),
@@ -2393,8 +2405,11 @@ fun PageInspectorSheetContent(
         containerColor = bg,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .fillMaxHeight(0.85f)
@@ -3360,8 +3375,11 @@ fun MangaTranslationComposerSheet(
         containerColor = bg,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
@@ -3731,8 +3749,11 @@ fun MangaDialogueEditorSheet(
         containerColor = bg,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .fillMaxHeight(0.92f)
@@ -4481,10 +4502,14 @@ fun AllInOneMenuSheet(
             )
         }
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 12.dp)
                 .padding(bottom = 6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -4500,18 +4525,21 @@ fun AllInOneMenuSheet(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Add,
                         label = stringResource(id = R.string.menu_new_tab),
                         tint = textColor,
                         onClick = { onDismissRequest(); onNewTab() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.VisibilityOff,
                         label = stringResource(id = R.string.menu_incognito),
                         tint = textColor,
                         onClick = { onDismissRequest(); onNewIncognitoTab() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.GridView,
                         label = stringResource(id = R.string.menu_group),
                         tint = textColor,
@@ -4519,6 +4547,7 @@ fun AllInOneMenuSheet(
                     )
                     val isHideNavActive = viewModel.navBarHideTop || viewModel.navBarHideBottom
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = if (isHideNavActive) Icons.Rounded.UnfoldLess else Icons.Rounded.UnfoldMore,
                         label = stringResource(id = R.string.menu_hide_nav),
                         tint = if (isHideNavActive) MaterialTheme.colorScheme.primary else textColor,
@@ -4699,24 +4728,28 @@ fun AllInOneMenuSheet(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.History,
                         label = stringResource(id = R.string.history_title),
                         tint = textColor,
                         onClick = { onDismissRequest(); onOpenHistory() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Bookmark,
                         label = stringResource(id = R.string.bookmarks_title),
                         tint = textColor,
                         onClick = { onDismissRequest(); onOpenBookmarks() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Download,
                         label = stringResource(id = R.string.downloads_title),
                         tint = textColor,
                         onClick = { onDismissRequest(); onOpenDownloads() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Whatshot,
                         label = stringResource(id = R.string.menu_burn_data),
                         tint = Color(0xFFFF4444),
@@ -4735,24 +4768,28 @@ fun AllInOneMenuSheet(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.PlayCircle,
                         label = stringResource(id = R.string.menu_player),
                         tint = textColor,
                         onClick = { onDismissRequest(); onShowPlayerSettings() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Palette,
                         label = stringResource(id = R.string.menu_theme),
                         tint = textColor,
                         onClick = { onDismissRequest(); onShowThemeSheet() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Settings,
                         label = stringResource(id = R.string.settings_title),
                         tint = textColor,
                         onClick = { onDismissRequest(); onOpenSettings() }
                     )
                     AllInOneGridItem(
+                        modifier = Modifier.weight(1f),
                         icon = Icons.AutoMirrored.Rounded.HelpOutline,
                         label = stringResource(id = R.string.menu_help),
                         tint = textColor,
@@ -4816,12 +4853,16 @@ fun AllInOneGridItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     tint: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    // Small devices: tighten padding and drop the label a notch so 4-column
+    // action rows keep visible breathing room instead of cramming.
+    val narrow = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 360
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .padding(horizontal = if (narrow) 2.dp else 6.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
@@ -4833,9 +4874,11 @@ fun AllInOneGridItem(
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            fontSize = 11.sp,
+            fontSize = if (narrow) 10.sp else 11.sp,
             color = tint,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }
@@ -4900,8 +4943,11 @@ fun ThemeSheet(
             )
         }
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
@@ -5251,8 +5297,11 @@ fun PlayerSettingsSheet(
             )
         }
     ) {
+    val sheetCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = sheetCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp)

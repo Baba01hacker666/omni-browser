@@ -54,10 +54,14 @@ fun FxAuthDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val authCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Card(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(16.dp)
+                .wrapContentSize(Alignment.Center)
+                .widthIn(max = authCap)
+                .fillMaxHeight(),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {

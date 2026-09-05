@@ -126,9 +126,13 @@ fun SiteSettingsScreen(
         ) { subView ->
             when (subView) {
                 SiteSettingsSubView.HOME -> {
+                        val siteCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .widthIn(max = siteCap)
+                            .fillMaxHeight()
                             .verticalScroll(rememberScrollState())
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -405,9 +409,13 @@ fun SiteSettingsScreen(
                     }
                 }
                 SiteSettingsSubView.PERMISSION_DETAIL -> {
+                        val siteCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .widthIn(max = siteCap)
+                            .fillMaxHeight()
                             .verticalScroll(rememberScrollState())
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)

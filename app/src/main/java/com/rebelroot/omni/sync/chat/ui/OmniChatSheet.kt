@@ -81,8 +81,11 @@ fun OmniChatSheet(
             BottomSheetDefaults.DragHandle(color = Color(0xFF4B5563))
         }
     ) {
+        val chatCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().sheetMaxWidth
         Column(
             modifier = Modifier
+                .widthIn(max = chatCap)
+                .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .fillMaxHeight(0.92f)
         ) {

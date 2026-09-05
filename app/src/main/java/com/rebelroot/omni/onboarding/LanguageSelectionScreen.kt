@@ -102,9 +102,13 @@ fun LanguageSelectionScreen(
         label = "glow_alpha"
     )
 
+    val langCap = com.rebelroot.omni.ui.adaptive.rememberAdaptiveUiMetrics().screenContentMaxWidth
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = langCap)
+            .fillMaxHeight()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(BgStart, BgEnd)
