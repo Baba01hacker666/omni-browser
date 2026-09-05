@@ -2,6 +2,28 @@
 
 All notable changes to the Omni Browser project will be documented in this file.
 
+## [1.3.2.0] - 2026-09-06
+
+### Added
+- **Tablet & Large-Screen Adaptive UI** (fixes #71): full adaptive layout system using official Android window size classes (Compact / Medium 600–839 / Expanded 840–1199 / Large 1200–1599 / Extra-Large ≥1600 dp plus height classes). Rotation, split-screen, freeform resize and fold/unfold all reflow live.
+- **Adaptive Tablet Chrome**: responsive tab strip with dynamic tab widths (active tab always in view), desktop-class toolbar with Speed Dial and Site Info buttons matching the mobile address bar, and a navigation rail on ≥840 dp windows that yields while searching and in fullscreen.
+- **Settings List-Detail Shell**: category pane beside width-capped settings content on expanded+ windows; every list/tool screen gains a readable max-width column.
+- **Tablet Home Palette Shortcut**: customize-home is always one tap away in the tablet home top bar.
+
+### Fixed
+- **Tablet**: web content no longer draws under the toolbar/address bar in landscape; bottom address bar viewport padding now accounted on tablets; toolbar actions collapse deterministically so the URL field never becomes unusably narrow.
+- **Dropdown Menu**: omni menu no longer clips past the bottom of the screen — height respects its anchor position and the card scrolls.
+- **Small Screens**: menu sheet and quick tools density reworked (4-column compact grid, tighter labels), home content scrolls clear of the transparent bottom bar, and the adaptive layout self-heals from stale window/density transitions.
+- **App Links** (#113): Omni now asks before opening https app links in native apps.
+- **Text Inputs** (#115): focused text inputs stay above the soft keyboard in web content.
+- **Burn Exit** (#117): GeckoView data purge completes before burn-exit, preventing the corrupt-profile error page.
+- Misc: dropdown `<optgroup>` sub-options, bookmark import, site overlay fixes.
+
+### Related
+- Groundwork for #81 (all toolbar actions in one bar on tablets), #106 (desktop-style tab strip), #112 (adaptive foundation for full UI customisation).
+
+---
+
 ## [1.3.5] - 2026-08-24
 
 ### Added
