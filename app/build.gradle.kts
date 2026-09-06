@@ -8,7 +8,7 @@ plugins {
 
 // Single version code for all flavors (Play Store upload).
 val baseVersionCode = 2052
-val baseVersionName = "1.3.2.1"
+val baseVersionName = "1.3.3.1"
 
 android {
     namespace = "com.rebelroot.omni"

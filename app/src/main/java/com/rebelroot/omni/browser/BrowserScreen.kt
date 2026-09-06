@@ -3741,6 +3741,15 @@ fun BrowserScreen(
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 15.sp
                                                 )
+                                            // Show file size when available (issue #111)
+                                            if (item.sizeBytes != null && item.sizeBytes > 0L) {
+                                                Text(
+                                                    text = formatFileSize(item.sizeBytes),
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(top = 2.dp)
+                                                )
+                                            }
                                             }
                                             Text(
                                                 text = item.type.name,
@@ -8382,6 +8391,17 @@ fun BrowserScreen(
 }
 
 
+
+
+/** Format bytes into a human-readable string (KB, MB, GB). */
+private fun formatFileSize(bytes: Long): String {
+    return when {
+        bytes < 1_000L -> "$bytes B"
+        bytes < 1_000_000L -> "%.0f KB".format(bytes / 1_000.0)
+        bytes < 1_000_000_000L -> "%.1f MB".format(bytes / 1_000_000.0)
+        else -> "%.2f GB".format(bytes / 1_000_000_000.0)
+    }
+}
 data class BuiltInExt(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val name: String,
