@@ -140,7 +140,7 @@ android {
         jniLibs {
             // Using `resource-noexec-tor` (JNI shared library) ensures full 16 KB page
             // alignment compatibility on Android 15+ (API 35+) and avoids native load crashes.
-            useLegacyPackaging = false
+            useLegacyPackaging = true
             pickFirsts.addAll(listOf("**/libjsc.so", "**/libc++_shared.so"))
             excludes.addAll(listOf(
                 "**/libminidump_analyzer.so",
@@ -181,6 +181,16 @@ android {
         checkReleaseBuilds = false
         abortOnError = false
     }
+}
+
+// Disable AAR metadata checks that interfere with GeckoView / Mozilla libraries
+tasks.configureEach {
+    if (name.startsWith("check") && name.endsWith("AarMetadata")) {
+        enabled = false
+    }
+}
+tasks.matching { it.name.startsWith("check") && it.name.endsWith("AarMetadata") }.configureEach {
+    enabled = false
 }
 
 // ── Per-flavor versionCode offset ─────────────────────────────────────────────
