@@ -183,9 +183,18 @@ android {
     }
 }
 
-tasks.matching { it.name.startsWith("check") && it.name.endsWith("AarMetadata") }.configureEach {
-    enabled = false
-}
+// ── Per-flavor versionCode offset ─────────────────────────────────────────────
+    // All three flavor APKs share the same versionCode (the highest offset) so that
+    // users who installed the universal APK can switch to the arm-only or aarch64
+    // APK on a future install without a version downgrade error.
+    androidComponents {
+        onVariants { variant ->
+            val versionOffset = 3000000
+            variant.outputs.forEach { output ->
+                output.versionCode.set(baseVersionCode + versionOffset)
+            }
+        }
+    }
 
 // Exclude io.opencensus transitive dependencies pulled in by io.grpc.
 // These libraries are telemetry/tracing stubs and are not used by the app
